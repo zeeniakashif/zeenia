@@ -1,0 +1,202 @@
+
+#include "HostelBlock.h"
+#include <iostream>
+using namespace std;
+
+HostelBlock::HostelBlock()
+    : blockName("Block-A"), roomCount(0) {}
+
+HostelBlock::HostelBlock(const string& blockName)
+    : blockName(blockName), roomCount(0) {}
+
+void HostelBlock::addRoom(int roomNumber, const string& type, int floor) {
+    if (roomCount < MAX_ROOMS_PER_BLOCK) {
+        rooms[roomCount++] = Room(roomNumber, type, floor);
+    } else {
+        cout << "[HostelBlock] " << blockName << " is full.\n";
+    }
+}
+
+Room* HostelBlock::findAvailableRoom() {
+    for (int i = 0; i < roomCount; i++) {
+        if (rooms[i].hasSpace())
+            return &rooms[i];
+    }
+    return nullptr;
+}
+
+Room* HostelBlock::findRoom(int roomNumber) {
+    for (int i = 0; i < roomCount; i++) {
+        if (rooms[i].getRoomNumber() == roomNumber)
+            return &rooms[i];
+    }
+    return nullptr;
+}
+
+void HostelBlock::displayBlock() const {
+    cout << "\n  ── Block: " << blockName
+         << " (" << roomCount << " rooms) ──\n";
+    for (int i = 0; i < roomCount; i++)
+        rooms[i].displayRoom();
+}
+
+#include "HostelManager.h"
+#include <iostream>
+#include <iomanip>
+using namespace std;
+
+HostelManager::HostelManager()
+    : CampusEntity("HITEC Hostel"),
+      Accommodation("HITEC Hostel"),
+      Reportable("HITEC Hostel"),
+      blockCount(0) {}
+
+HostelManager::HostelManager(const string& managerName)
+    : CampusEntity(managerName),
+      Accommodation(managerName),
+      Reportable(managerName),
+      blockCount(0) {}
+
+HostelManager::~HostelManager() {
+    cout << "[HostelManager] Destructor called for '"
+         << entityName << "'. All blocks released.\n";
+}
+
+void HostelManager::addBlock(const string& blockName) {
+    if (blockCount < MAX_BLOCKS) {
+        blocks[blockCount++] = HostelBlock(blockName);
+        cout << "[Hostel] Block '" << blockName << "' added.\n";
+    } else {
+        cout << "[Hostel] Maximum blocks reached.\n";
+    }
+}
+
+void HostelManager::addRoomToBlock(int blockIndex, int roomNumber,
+                                   const string& type, int floor) {
+    if (blockIndex >= 0 && blockIndex < blockCount) {
+        blocks[blockIndex].addRoom(roomNumber, type, floor);
+    } else {
+        cout << "[Hostel] Invalid block index: " << blockIndex << "\n";
+    }
+}
+
+void HostelManager::allocateRoom(Student* student) {
+    for (int i = 0; i < blockCount; i++) {
+        Room* room = blocks[i].findAvailableRoom();
+        if (room) {
+            room->addOccupant(student);
+            cout << "[Hostel] " << student->getName()
+                 << " allocated to Block " << blocks[i].getBlockName()
+                 << ", Room " << room->getRoomNumber() << "\n";
+            return;
+        }
+    }
+    cout << "[Hostel] No available rooms for " << student->getName() << "\n";
+}
+
+void HostelManager::vacateRoom(const string& rollNo, int roomNumber) {
+    for (int i = 0; i < blockCount; i++) {
+        Room* room = blocks[i].findRoom(roomNumber);
+        if (room) {
+            if (room->removeOccupant(rollNo)) {
+                cout << "[Hostel] Student " << rollNo
+                     << " vacated Room " << roomNumber << "\n";
+                return;
+            }
+        }
+    }
+    cout << "[Hostel] Student " << rollNo
+         << " not found in Room " << roomNumber << "\n";
+}
+
+void HostelManager::generateReport() const {
+    cout << "\n╔══════════════════════════════════════╗\n";
+    cout << "║       HOSTEL OCCUPANCY REPORT        ║\n";
+    cout << "║  " << left << setw(36) << entityName << "║\n";
+    cout << "╠══════════════════════════════════════╣\n";
+
+    int totalRooms     = 0;
+    int occupiedRooms  = 0;
+    int totalStudents  = 0;
+
+    for (int i = 0; i < blockCount; i++) {
+        blocks[i].displayBlock();
+        for (int j = 0; j < blocks[i].getRoomCount(); j++) {
+            const Room& room = blocks[i].getRoom(j);
+            totalRooms++;
+            if (room.getOccupantCount() > 0) {
+                occupiedRooms++;
+                totalStudents += room.getOccupantCount();
+            }
+        }
+    }
+
+    cout << "╠══════════════════════════════════════╣\n";
+    cout << "║ Total Blocks   : " << left << setw(20) << blockCount   << "║\n";
+    cout << "║ Total Rooms    : " << left << setw(20) << totalRooms   << "║\n";
+    cout << "║ Occupied Rooms : " << left << setw(20) << occupiedRooms<< "║\n";
+    cout << "║ Total Students : " << left << setw(20) << totalStudents<< "║\n";
+    cout << "╚══════════════════════════════════════╝\n";
+}
+
+#include "Room.h"
+#include <iostream>
+#include <iomanip>
+using namespace std;
+
+Room::Room()
+    : roomNumber(0), type("single"), floor(1),
+      occupantCount(0), maxOccupants(1) {
+    for (int i = 0; i < MAX_OCCUPANTS; i++) occupants[i] = nullptr;
+}
+
+Room::Room(int roomNumber, const string& type, int floor)
+    : roomNumber(roomNumber), type(type), floor(floor),
+      occupantCount(0) {
+    for (int i = 0; i < MAX_OCCUPANTS; i++) occupants[i] = nullptr;
+    if      (type == "single") maxOccupants = 1;
+    else if (type == "double") maxOccupants = 2;
+    else if (type == "triple") maxOccupants = 3;
+    else                       maxOccupants = 1;
+}
+
+bool Room::addOccupant(Student* student) {
+    if (!hasSpace()) {
+        cout << "[Room " << roomNumber << "] Room is full.\n";
+        return false;
+    }
+    occupants[occupantCount++] = student;
+    cout << "[Room " << roomNumber << "] "
+         << student->getName() << " allocated.\n";
+    return true;
+}
+
+bool Room::removeOccupant(const string& rollNo) {
+    for (int i = 0; i < occupantCount; i++) {
+        if (occupants[i] && occupants[i]->getRollNo() == rollNo) {
+            cout << "[Room " << roomNumber << "] "
+                 << occupants[i]->getName() << " vacated.\n";
+            
+            for (int j = i; j < occupantCount - 1; j++)
+                occupants[j] = occupants[j + 1];
+            occupants[--occupantCount] = nullptr;
+            return true;
+        }
+    }
+    return false;
+}
+
+void Room::displayRoom() const {
+    cout << "  Room " << roomNumber << " [" << type << ", Floor "
+         << floor << "] " << occupantCount << "/" << maxOccupants << " occupied\n";
+    for (int i = 0; i < occupantCount; i++) {
+        if (occupants[i])
+            cout << "    -> " << occupants[i]->getName()
+                 << " (" << occupants[i]->getRollNo() << ")\n";
+    }
+}
+
+Student* Room::getOccupant(int i) const {
+    if (i >= 0 && i < occupantCount) return occupants[i];
+    return nullptr;
+}
