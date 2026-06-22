@@ -1,0 +1,170 @@
+
+#include "Faculty.h"
+#include <iostream>
+#include <iomanip>
+using namespace std;
+
+Faculty::Faculty()
+    : Person("Unknown", "00000-0000000-0", 0, "N/A"),
+      employeeID("F000"), department("CS"), designation("Lecturer"),
+      courseCount(0) {}
+
+Faculty::Faculty(const string& name, const string& cnic, int age,
+                 const string& contact, const string& employeeID,
+                 const string& department, const string& designation)
+    : Person(name, cnic, age, contact),
+      employeeID(employeeID), department(department),
+      designation(designation), courseCount(0) {}
+
+void Faculty::displayInfo() const {
+    cout << "┌─────────────────────────────────┐\n";
+    cout << "│         FACULTY RECORD          │\n";
+    cout << "├─────────────────────────────────┤\n";
+    cout << "│ Name        : " << left << setw(19) << name        << "│\n";
+    cout << "│ Employee ID : " << left << setw(19) << employeeID  << "│\n";
+    cout << "│ Department  : " << left << setw(19) << department  << "│\n";
+    cout << "│ Designation : " << left << setw(19) << designation << "│\n";
+    cout << "│ Contact     : " << left << setw(19) << contact     << "│\n";
+    cout << "│ Courses     : " << left << setw(19) << courseCount << "│\n";
+    cout << "└─────────────────────────────────┘\n";
+}
+
+void Faculty::assignCourse(const string& courseCode) {
+    if (courseCount < MAX_FACULTY_COURSES) {
+        assignedCourses[courseCount++] = courseCode;
+    } else {
+        cout << "[Warning] Faculty " << employeeID
+             << " is already assigned maximum courses.\n";
+    }
+}
+
+string Faculty::getAssignedCourse(int i) const {
+    if (i >= 0 && i < courseCount)
+        return assignedCourses[i];
+    return "";
+}
+
+#include "GradStudent.h"
+#include <iostream>
+#include <iomanip>
+using namespace std;
+
+GradStudent::GradStudent()
+    : Student(),
+      thesisTitle("TBD"), supervisorName("TBD"), researchArea("TBD") {}
+
+GradStudent::GradStudent(const string& name, const string& cnic, int age,
+                         const string& contact, const string& rollNo,
+                         int semester, double gpa,
+                         const string& thesisTitle,
+                         const string& supervisorName,
+                         const string& researchArea)
+    : Student(name, cnic, age, contact, rollNo, semester, gpa),
+      thesisTitle(thesisTitle),
+      supervisorName(supervisorName),
+      researchArea(researchArea) {}
+
+void GradStudent::displayInfo() const {
+    cout << "┌─────────────────────────────────┐\n";
+    cout << "│      GRADUATE STUDENT RECORD    │\n";
+    cout << "├─────────────────────────────────┤\n";
+    cout << "│ Name       : " << left << setw(20) << name           << "│\n";
+    cout << "│ Roll No    : " << left << setw(20) << getRollNo()    << "│\n";
+    cout << "│ Semester   : " << left << setw(20) << getSemester()  << "│\n";
+    cout << "│ GPA        : " << left << setw(20) << fixed << setprecision(2) << getGPA() << "│\n";
+    cout << "│ Grade      : " << left << setw(20) << calculateGrade()<< "│\n";
+    cout << "│ Thesis     : " << left << setw(20) << thesisTitle    << "│\n";
+    cout << "│ Supervisor : " << left << setw(20) << supervisorName << "│\n";
+    cout << "│ Research   : " << left << setw(20) << researchArea   << "│\n";
+    cout << "│ Contact    : " << left << setw(20) << contact        << "│\n";
+    cout << "└─────────────────────────────────┘\n";
+}
+
+#include "Person.h"
+Person::Person(const string& name, const string& cnic,
+               int age, const string& contact)
+    : name(name), cnic(cnic), age(age), contact(contact) {}
+
+#include "Staff.h"
+#include <iostream>
+#include <iomanip>
+using namespace std;
+
+Staff::Staff()
+    : Person("Unknown", "00000-0000000-0", 0, "N/A"),
+      staffID("S000"), role("Support"), salary(0.0) {}
+
+Staff::Staff(const string& name, const string& cnic, int age,
+             const string& contact, const string& staffID,
+             const string& role, double salary)
+    : Person(name, cnic, age, contact),
+      staffID(staffID), role(role), salary(salary) {}
+
+void Staff::displayInfo() const {
+    cout << "┌─────────────────────────────────┐\n";
+    cout << "│          STAFF RECORD           │\n";
+    cout << "├─────────────────────────────────┤\n";
+    cout << "│ Name     : " << left << setw(22) << name    << "│\n";
+    cout << "│ Staff ID : " << left << setw(22) << staffID << "│\n";
+    cout << "│ Role     : " << left << setw(22) << role    << "│\n";
+    cout << "│ Salary   : Rs. " << left << setw(18) << fixed
+         << setprecision(2) << salary                      << "│\n";
+    cout << "│ Contact  : " << left << setw(22) << contact << "│\n";
+    cout << "└─────────────────────────────────┘\n";
+}
+
+#include "Student.h"
+#include <iostream>
+#include <iomanip>
+using namespace std;
+
+Student::Student()
+    : Person("Unknown", "00000-0000000-0", 0, "N/A"),
+      rollNo("XXXX"), semester(1), gpa(0.0), courseCount(0) {}
+
+Student::Student(const string& name, const string& cnic, int age,
+                 const string& contact, const string& rollNo,
+                 int semester, double gpa)
+    : Person(name, cnic, age, contact),
+      rollNo(rollNo), semester(semester), gpa(gpa), courseCount(0) {}
+
+void Student::displayInfo() const {
+    cout << "┌─────────────────────────────────┐\n";
+    cout << "│         STUDENT RECORD          │\n";
+    cout << "├─────────────────────────────────┤\n";
+    cout << "│ Name     : " << left << setw(22) << name     << "│\n";
+    cout << "│ Roll No  : " << left << setw(22) << rollNo   << "│\n";
+    cout << "│ Semester : " << left << setw(22) << semester << "│\n";
+    cout << "│ GPA      : " << left << setw(22) << fixed << setprecision(2) << gpa << "│\n";
+    cout << "│ Grade    : " << left << setw(22) << calculateGrade() << "│\n";
+    cout << "│ CNIC     : " << left << setw(22) << cnic     << "│\n";
+    cout << "│ Contact  : " << left << setw(22) << contact  << "│\n";
+    cout << "└─────────────────────────────────┘\n";
+}
+
+string Student::calculateGrade() const {
+    if      (gpa >= 3.7) return "A  (Distinction)";
+    else if (gpa >= 3.3) return "A- (Excellent)";
+    else if (gpa >= 3.0) return "B+ (Very Good)";
+    else if (gpa >= 2.7) return "B  (Good)";
+    else if (gpa >= 2.3) return "B- (Above Average)";
+    else if (gpa >= 2.0) return "C  (Average)";
+    else if (gpa >= 1.0) return "D  (Below Average)";
+    else                 return "F  (Fail)";
+}
+
+void Student::enrollCourse(const string& courseCode) {
+    if (courseCount < MAX_STUDENT_COURSES) {
+        enrolledCourses[courseCount++] = courseCode;
+    } else {
+        cout << "[Warning] Student " << rollNo
+             << " cannot enroll in more than "
+             << MAX_STUDENT_COURSES << " courses.\n";
+    }
+}
+
+string Student::getEnrolledCourse(int i) const {
+    if (i >= 0 && i < courseCount)
+        return enrolledCourses[i];
+    return "";
+}
