@@ -1,0 +1,274 @@
+
+#include "Reports.h"
+#include "Utils.h"
+#include <iostream>
+#include <fstream>
+#include <iomanip>
+#include <algorithm>
+using namespace std;
+
+void Reports::sortStudentsByGPA(Student* students[], int count) {
+    if (count == 0) {
+        cout << "No students to sort.\n";
+        return;
+    }
+
+    sort(students, students + count,
+         [](const Student* a, const Student* b) {
+             return a->getGPA() > b->getGPA(); 
+         });
+
+    Utils::printHeader("STUDENTS SORTED BY GPA");
+    cout << left << setw(5)  << "#"
+         << setw(20) << "Name"
+         << setw(12) << "Roll No"
+         << setw(8)  << "GPA"
+         << setw(20) << "Grade" << "\n";
+    Utils::printDivider('-', 65);
+
+    for (int i = 0; i < count; i++) {
+        cout << left << setw(5)  << (i + 1)
+             << setw(20) << students[i]->getName()
+             << setw(12) << students[i]->getRollNo()
+             << setw(8)  << fixed << setprecision(2) << students[i]->getGPA()
+             << setw(20) << students[i]->calculateGrade() << "\n";
+    }
+}
+
+void Reports::displayAllStudents(Student* students[], int count) {
+    Utils::printHeader("ALL STUDENTS");
+    if (count == 0) {
+        cout << "  No students registered.\n";
+        return;
+    }
+    for (int i = 0; i < count; i++) {
+        Person* p = students[i]; 
+        p->displayInfo();  
+    }
+}
+
+Student* Reports::findStudentByRollNo(Student* students[], int count,
+                                       const string& rollNo) {
+    Student** result = find_if(students, students + count,
+        [&rollNo](const Student* s) {
+            return s->getRollNo() == rollNo;
+        });
+
+    if (result != students + count) {
+        return *result;
+    }
+    return nullptr;
+}
+void Reports::reportOverdueItems(Library& library) {
+    Utils::printHeader("LIBRARY OVERDUE REPORT");
+    cout << "  (Items checked out > 14 days are flagged)\n";
+    library.displayIssuedItems();
+}
+
+void Reports::displayLibrarySummary(Library& library) {
+    Utils::printHeader("LIBRARY SUMMARY");
+    cout << "  Total items in catalog: " << library.getCatalogSize() << "\n";
+    library.displayCatalog();
+}
+
+void Reports::displayAllFeeRecords(FeeRecord records[], int count) {
+    Utils::printHeader("ALL FEE RECORDS");
+    if (count == 0) {
+        cout << "  No fee records.\n";
+        return;
+    }
+    for (int i = 0; i < count; i++)
+        records[i].displayFeeRecord();
+}
+
+void Reports::reportOutstandingBalances(FeeRecord records[], int count) {
+    Utils::printHeader("OUTSTANDING BALANCES");
+    bool found = false;
+    for (int i = 0; i < count; i++) {
+        if (records[i].getBalance() > 0) {
+            found = true;
+            Student* s = records[i].getStudent();
+            cout << "  " << (s ? s->getName() : "Unknown")
+                 << " | Balance: Rs. " << fixed << setprecision(2)
+                 << records[i].getBalance() << "\n";
+        }
+    }
+    if (!found) cout << "  No outstanding balances.\n";
+}
+
+void Reports::displayHostelReport(HostelManager& hostelMgr) {
+    Reportable* rep = &hostelMgr; 
+    rep->generateReport();   
+}
+
+void Reports::generateCampusReport(
+    Student* students[], int studentCount,
+    Faculty* faculty[],  int facultyCount,
+    Library& library,
+    FeeRecord feeRecords[], int feeCount,
+    HostelManager& hostelMgr)
+{
+    (void)faculty;
+    Utils::printHeader("CONSOLIDATED CAMPUS REPORT");
+    cout << "  Campus: HITEC University Taxila\n";
+    cout << "  Course: CS-104L Object-Oriented Programming\n\n";
+
+    cout << "  Students Registered : " << studentCount << "\n";
+    cout << "  Faculty Registered  : " << facultyCount << "\n";
+    cout << "  Library Items       : " << library.getCatalogSize() << "\n\n";
+
+    if (studentCount > 0)
+        sortStudentsByGPA(students, studentCount);
+
+    double totalOutstanding = 0.0;
+    for (int i = 0; i < feeCount; i++)
+        totalOutstanding += feeRecords[i].getBalance();
+    cout << "\n  Total Outstanding Fees: Rs. " << fixed
+         << setprecision(2) << totalOutstanding << "\n";
+
+    hostelMgr.generateReport();
+}
+void Reports::saveCampusReportToFile(
+    const string& filename,
+    Student* students[], int studentCount,
+    Faculty* faculty[],  int facultyCount,
+    Library& library)
+{
+    ofstream outFile(filename);
+    if (!outFile.is_open()) {
+        cout << "[Reports] Could not open file: " << filename << "\n";
+        return;
+    }
+
+    outFile << "============================================\n";
+    outFile << "   HITEC UNIVERSITY TAXILA — CAMPUS REPORT\n";
+    outFile << "============================================\n\n";
+
+    outFile << "STUDENTS (" << studentCount << ")\n";
+    outFile << string(40, '-') << "\n";
+    for (int i = 0; i < studentCount; i++) {
+        outFile << left << setw(5)  << (i + 1)
+                << setw(20) << students[i]->getName()
+                << setw(12) << students[i]->getRollNo()
+                << "GPA: " << fixed << setprecision(2)
+                << students[i]->getGPA() << "\n";
+    }
+
+    outFile << "\nFACULTY (" << facultyCount << ")\n";
+    outFile << string(40, '-') << "\n";
+    for (int i = 0; i < facultyCount; i++) {
+        outFile << left << setw(5)  << (i + 1)
+                << setw(20) << faculty[i]->getName()
+                << setw(15) << faculty[i]->getDepartment()
+                << faculty[i]->getDesignation() << "\n";
+    }
+
+    outFile << "\nLIBRARY CATALOG (" << library.getCatalogSize() << " items)\n";
+    outFile << string(40, '-') << "\n";
+    for (int i = 0; i < library.getCatalogSize(); i++) {
+        LibraryItem* item = library.getCatalogItem(i);
+        if (item) {
+            outFile << left << setw(5)  << (i + 1)
+                    << setw(30) << item->getTitle()
+                    << item->getAuthor() << "\n";
+        }
+    }
+
+    outFile.close();
+    cout << "[Reports] Campus report saved to '" << filename << "'\n";
+}
+
+#include "Utils.h"
+#include <iostream>
+#include <iomanip>
+#include <algorithm>
+#include <limits>
+#include <cctype>
+using namespace std;
+
+void Utils::printHeader(const string& title) {
+    int width = 42;
+    string line;
+    for (int i = 0; i < width; i++) line += "\xE2\x95\x90"; 
+    cout << "\n" << line << "\n";
+    int pad = (width - static_cast<int>(title.length())) / 2;
+    cout << string(pad, ' ') << title << "\n";
+    cout << line << "\n";
+}
+
+void Utils::printDivider(char ch, int width) {
+    cout << string(width, ch) << "\n";
+}
+
+string Utils::getCurrentDate() {
+    return "2025-01-01"; 
+}
+
+bool Utils::isNotEmpty(const string& s) {
+    return !s.empty() && s.find_first_not_of(' ') != string::npos;
+}
+
+bool Utils::isValidGPA(double gpa) {
+    return gpa >= 0.0 && gpa <= 4.0;
+}
+
+bool Utils::isValidSemester(int sem) {
+    return sem >= 1 && sem <= 8;
+}
+string Utils::toUpperCase(const string& s) {
+    string result = s;
+    transform(result.begin(), result.end(), result.begin(), ::toupper);
+    return result;
+}
+
+string Utils::trim(const string& s) {
+    size_t start = s.find_first_not_of(" \t\r\n");
+    size_t end   = s.find_last_not_of(" \t\r\n");
+    if (start == string::npos) return "";
+    return s.substr(start, end - start + 1);
+}
+
+void Utils::pressEnterToContinue() {
+    cout << "\n  [Press Enter to continue...]";
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+    cin.get();
+}
+
+void Utils::clearScreen() {
+    cout << "\033[2J\033[1;1H";
+}
+
+int Utils::getIntInput(const string& prompt) {
+    int value;
+    while (true) {
+        cout << prompt;
+        if (cin >> value) {
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            return value;
+        }
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        cout << "  [Invalid] Please enter a valid integer.\n";
+    }
+}
+
+double Utils::getDoubleInput(const string& prompt) {
+    double value;
+    while (true) {
+        cout << prompt;
+        if (cin >> value) {
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            return value;
+        }
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        cout << "  [Invalid] Please enter a valid number.\n";
+    }
+}
+
+string Utils::getStringInput(const string& prompt) {
+    string value;
+    cout << prompt;
+    getline(cin, value);
+    return trim(value);
+}
