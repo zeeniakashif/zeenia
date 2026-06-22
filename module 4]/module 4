@@ -1,0 +1,306 @@
+
+#include "Book.h"
+#include <iostream>
+#include <iomanip>
+#include <sstream>
+using namespace std;
+
+Book::Book(const string& itemID, const string& title, const string& author,
+           int publicationYear, const string& isbn,
+           const string& genre, int copiesAvailable)
+    : LibraryItem(itemID, title, author, publicationYear),
+      isbn(isbn), genre(genre), copiesAvailable(copiesAvailable) {}
+
+void Book::checkout() {
+    if (copiesAvailable > 0) {
+        copiesAvailable--;
+        isCheckedOut = (copiesAvailable == 0);
+        cout << "[Library] Book '" << title
+             << "' checked out. Copies left: " << copiesAvailable << "\n";
+    } else {
+        cout << "[Library] No copies of '" << title << "' available.\n";
+    }
+}
+
+void Book::returnItem() {
+    copiesAvailable++;
+    isCheckedOut = false;
+    cout << "[Library] Book '" << title << "' returned. Copies now: "
+         << copiesAvailable << "\n";
+}
+
+void Book::displayInfo() const {
+    cout << "┌─────────────────────────────────┐\n";
+    cout << "│            BOOK INFO            │\n";
+    cout << "├─────────────────────────────────┤\n";
+    cout << "│ ID     : " << left << setw(24) << itemID          << "│\n";
+    cout << "│ Title  : " << left << setw(24) << title           << "│\n";
+    cout << "│ Author : " << left << setw(24) << author          << "│\n";
+    cout << "│ Year   : " << left << setw(24) << publicationYear << "│\n";
+    cout << "│ ISBN   : " << left << setw(24) << isbn            << "│\n";
+    cout << "│ Genre  : " << left << setw(24) << genre           << "│\n";
+    cout << "│ Copies : " << left << setw(24) << copiesAvailable << "│\n";
+    cout << "│ Status : " << left << setw(24)
+         << (isCheckedOut ? "Checked Out" : "Available")         << "│\n";
+    cout << "└─────────────────────────────────┘\n";
+}
+
+string Book::toFileString() const {
+    return "BOOK|" + itemID + "|" + title + "|" + author + "|" +
+           to_string(publicationYear) + "|" + isbn + "|" + genre + "|" +
+           to_string(copiesAvailable);
+}
+
+#include "Journal.h"
+#include <iostream>
+#include <iomanip>
+using namespace std;
+
+Journal::Journal(const string& itemID, const string& title, const string& author,
+                 int publicationYear, const string& issn,
+                 int volume, int issueNumber)
+    : LibraryItem(itemID, title, author, publicationYear),
+      issn(issn), volume(volume), issueNumber(issueNumber) {}
+
+void Journal::checkout() {
+    if (!isCheckedOut) {
+        isCheckedOut = true;
+        cout << "[Library] Journal '" << title << "' checked out.\n";
+    } else {
+        cout << "[Library] Journal '" << title << "' is already checked out.\n";
+    }
+}
+
+void Journal::displayInfo() const {
+    cout << "┌─────────────────────────────────┐\n";
+    cout << "│          JOURNAL INFO           │\n";
+    cout << "├─────────────────────────────────┤\n";
+    cout << "│ ID     : " << left << setw(24) << itemID          << "│\n";
+    cout << "│ Title  : " << left << setw(24) << title           << "│\n";
+    cout << "│ Author : " << left << setw(24) << author          << "│\n";
+    cout << "│ Year   : " << left << setw(24) << publicationYear << "│\n";
+    cout << "│ ISSN   : " << left << setw(24) << issn            << "│\n";
+    cout << "│ Volume : " << left << setw(24) << volume          << "│\n";
+    cout << "│ Issue  : " << left << setw(24) << issueNumber     << "│\n";
+    cout << "│ Status : " << left << setw(24)
+         << (isCheckedOut ? "Checked Out" : "Available")         << "│\n";
+    cout << "└─────────────────────────────────┘\n";
+}
+
+string Journal::toFileString() const {
+    return "JOURNAL|" + itemID + "|" + title + "|" + author + "|" +
+           to_string(publicationYear) + "|" + issn + "|" +
+           to_string(volume) + "|" + to_string(issueNumber);
+}
+
+#include "Library.h"
+#include <iostream>
+#include <iomanip>
+#include <sstream>
+using namespace std;
+
+Library::Library(const string& catalogFile)
+    : catalogSize(0), issuedCount(0), catalogFile(catalogFile) {
+    for (int i = 0; i < MAX_CATALOG; i++) catalog[i] = nullptr;
+}
+
+Library::~Library() {
+    for (int i = 0; i < catalogSize; i++) {
+        delete catalog[i];  
+        catalog[i] = nullptr;
+    }
+}
+
+void Library::addItem(LibraryItem* item) {
+    if (catalogSize < MAX_CATALOG) {
+        catalog[catalogSize++] = item;
+    } else {
+        cout << "[Library] Catalog is full. Cannot add more items.\n";
+    }
+}
+
+void Library::removeItem(const string& itemID) {
+    for (int i = 0; i < catalogSize; i++) {
+        if (catalog[i]->getItemID() == itemID) {
+            delete catalog[i];
+            
+            for (int j = i; j < catalogSize - 1; j++)
+                catalog[j] = catalog[j + 1];
+            catalog[--catalogSize] = nullptr;
+            cout << "[Library] Item '" << itemID << "' removed.\n";
+            return;
+        }
+    }
+    throw ItemNotFoundException(itemID);
+}
+
+LibraryItem* Library::searchByTitle(const string& title) const {
+    for (int i = 0; i < catalogSize; i++) {
+        if (catalog[i]->getTitle() == title)
+            return catalog[i];
+    }
+    return nullptr;
+}
+
+LibraryItem* Library::searchByID(const string& itemID) const {
+    for (int i = 0; i < catalogSize; i++) {
+        if (catalog[i]->getItemID() == itemID)
+            return catalog[i];
+    }
+    return nullptr;
+}
+
+void Library::issueItem(const string& rollNo, const string& itemID,
+                        const string& date) {
+    LibraryItem* item = searchByID(itemID);
+    if (!item) throw ItemNotFoundException(itemID);
+
+    item->checkout();
+
+    if (issuedCount < MAX_ISSUED) {
+        issuedItems[issuedCount++] = {rollNo, itemID, date, 0};
+        cout << "[Library] Item '" << itemID
+             << "' issued to " << rollNo << "\n";
+    }
+}
+
+void Library::returnItem(const string& rollNo, const string& itemID,
+                         int daysKept) {
+    const int LOAN_PERIOD = 14;
+
+    LibraryItem* item = searchByID(itemID);
+    if (!item) throw ItemNotFoundException(itemID);
+
+    for (int i = 0; i < issuedCount; i++) {
+        if (issuedItems[i].rollNo == rollNo &&
+            issuedItems[i].itemID == itemID) {
+            
+            for (int j = i; j < issuedCount - 1; j++)
+                issuedItems[j] = issuedItems[j + 1];
+            issuedCount--;
+            break;
+        }
+    }
+
+    item->returnItem(); 
+    
+    if (daysKept > LOAN_PERIOD) {
+        int    overdueDays = daysKept - LOAN_PERIOD;
+        double fine        = overdueDays * FINE_PER_DAY;
+        throw OverdueException(item->getTitle(), fine);
+    }
+}
+
+void Library::saveToFile() const {
+    ofstream outFile(catalogFile);
+    if (!outFile.is_open()) {
+        cout << "[Library] Error: Could not open file for writing: "
+             << catalogFile << "\n";
+        return;
+    }
+
+    for (int i = 0; i < catalogSize; i++) {
+        Book*    b = dynamic_cast<Book*>(catalog[i]);
+        Journal* j = dynamic_cast<Journal*>(catalog[i]);
+        if (b) outFile << b->toFileString() << "\n";
+        else if (j) outFile << j->toFileString() << "\n";
+    }
+
+    outFile.close();
+    cout << "[Library] Catalog saved to '" << catalogFile << "'\n";
+}
+
+void Library::loadFromFile() {
+    ifstream inFile(catalogFile);
+    if (!inFile.is_open()) {
+        cout << "[Library] No existing catalog found at '"
+             << catalogFile << "'. Starting fresh.\n";
+        return;
+    }
+
+    for (int i = 0; i < catalogSize; i++) {
+        delete catalog[i];
+        catalog[i] = nullptr;
+    }
+    catalogSize = 0;
+
+    string line;
+    while (getline(inFile, line)) {
+        if (line.empty()) continue;
+
+        // Tokenise by '|'
+        string tokens[10];
+        int    tokenCount = 0;
+        stringstream ss(line);
+        string token;
+        while (getline(ss, token, '|') && tokenCount < 10)
+            tokens[tokenCount++] = token;
+
+        if (tokenCount < 1) continue;
+
+        if (tokens[0] == "BOOK" && tokenCount >= 8) {
+            Book* b = new Book(
+                tokens[1], tokens[2], tokens[3],
+                stoi(tokens[4]), tokens[5], tokens[6], stoi(tokens[7])
+            );
+            addItem(b);
+        } else if (tokens[0] == "JOURNAL" && tokenCount >= 8) {
+            Journal* j = new Journal(
+                tokens[1], tokens[2], tokens[3],
+                stoi(tokens[4]), tokens[5], stoi(tokens[6]), stoi(tokens[7])
+            );
+            addItem(j);
+        }
+    }
+
+    inFile.close();
+    cout << "[Library] Loaded " << catalogSize
+         << " items from '" << catalogFile << "'\n";
+}
+
+void Library::displayCatalog() const {
+    cout << "\n════════ LIBRARY CATALOG (" << catalogSize << " items) ════════\n";
+    if (catalogSize == 0) {
+        cout << "  (empty)\n";
+        return;
+    }
+    for (int i = 0; i < catalogSize; i++) {
+        catalog[i]->displayInfo(); 
+    }
+}
+
+void Library::displayIssuedItems() const {
+    cout << "\n════════ ISSUED ITEMS (" << issuedCount << ") ════════\n";
+    if (issuedCount == 0) {
+        cout << "  (none currently issued)\n";
+        return;
+    }
+    cout << left << setw(12) << "Roll No"
+         << setw(12) << "Item ID"
+         << setw(15) << "Issue Date" << "\n";
+    cout << string(39, '-') << "\n";
+    for (int i = 0; i < issuedCount; i++) {
+        cout << left << setw(12) << issuedItems[i].rollNo
+             << setw(12) << issuedItems[i].itemID
+             << setw(15) << issuedItems[i].issueDate << "\n";
+    }
+}
+
+LibraryItem* Library::getCatalogItem(int i) const {
+    if (i >= 0 && i < catalogSize) return catalog[i];
+    return nullptr;
+}
+
+#include "LibraryItem.h"
+#include <iostream>
+using namespace std;
+
+LibraryItem::LibraryItem(const string& itemID, const string& title,
+                         const string& author, int publicationYear)
+    : itemID(itemID), title(title), author(author),
+      publicationYear(publicationYear), isCheckedOut(false) {}
+
+void LibraryItem::returnItem() {
+    isCheckedOut = false;
+    cout << "[Library] '" << title << "' has been returned.\n";
+}
